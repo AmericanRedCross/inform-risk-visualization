@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+<script src="d3.v3.min.js"></script>
+<script src="queue.v1.min.js"></script>
+
+<script src='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet' />
+
+<div id="container" style="position: absolute; bottom: 0%; top: 0; left: 0; right: 50%; background: #fff;">
+  <h1></h1>
+</div>
+<div id="map" style="position: absolute; bottom: 0%; top: 0%; left: 50%; right: 0%; background: #fff;"></div>
+
+<!-- Array with hierarchy of fields -->
+<script src="field-hierarchy.js"></script>
+
+<!-- Load countries geojson object -->
+<script src="countries.js"></script>
+
+<script>
+
+// Hard code staring points
+var selectedMetric = "INFORM RISK";
+var selectedCountry = "Somalia";
+
+// Returns index of an attribute with a certain value within an array
+var findIndex = function(array, attr, value) {
+    for(var i = 0; i < array.length; i++) {
+        if(array[i][attr] === value) {
+            return i;
+        }
+    }
+}
+
+var selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
+
+// Visual variables
+var width = document.getElementById("container").clientWidth * 2,
+    height = document.getElementById("container").clientHeight,
+    tau = 2 * Math.PI,
+    inner = width / 8,
+    outer = width / 5,
+    colors = ["#fff", "#ed1b2e", "#cd0b1e"];
+
+var color = d3.scale.linear()
+		.domain([0.1, 7.5, 9.9])
+		.range([colors[0], colors[1], colors[2]])
+		.interpolate(d3.interpolateLab);
+
+// Empty arrays
+var visibleFields = [];
+var visibleArcs = [];
+var backgroundArcs = [];
+var textArcs = [];
+
+// Create the SVG container, and apply a transform such that the origin is the center of the canvas
+var svg = d3.select("#container").append("svg")
+    .attr("width", width / 2)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(" + width / 4 + "," + height / 2 + ")");
+
+// Create and svg grouping to hold our visualization arcs
+var backgroundArcGroup = svg.append("g");
+var arcGroup = svg.append("g");
+var textArcGroup = svg.append("g");
+
+// Add all fields that should be currently represented with arcs to the visibleFields array
+var populateVisibleFields = function() {
+  visibleFields = fieldHierarchy[selectedMetricIndex].subset;
+}
+populateVisibleFields();
+
+// Load data
+queue()
+    .defer(d3.csv, "natural-disaster-risk.csv")
+    .await(ready);
+
+// READY
+function ready(error, risk) {
+  if (error) throw error;
+
+  /////////
+  // MAP //
+  /////////
+
+  // Add map
+  L.mapbox.accessToken = 'pk.eyJ1IjoiYWFyb25kZW5uaXMiLCJhIjoiem5LLURoYyJ9.T3tswGTI5ve8_wE-a02cMw';
+  var map = L.mapbox.map('map', 'mapbox.high-contrast',
+                          { zoomControl: false,
+                            tileLayer: {
+                                continuousWorld: false,
+                                noWrap: true
+                            },
+                            maxZoom: 5
+                          }).setView([0, 0], 2);
+
+  var choroplethLayer = L.geoJson().addTo(map);
+
+  function onEachFeature(feature, layer) {
+        layer.on({
+            //mousemove: mousemove,
+            //mouseout: mouseout,
+            click: zoomToFeature
+        });
+    }
+
+  // Zooming map to country
+  function zoomToFeature(e) {
+    console.log(e.target.feature.properties.ISO3);
+    selectCountry(risk[findIndex(risk, "ISO3", e.target.feature.properties.ISO3)]["COUNTRY"]);
+    map.fitBounds(e.target.getBounds());
+  }
+
+  // grap value of the selected metric given country code
+  function getValue(key) {
+    if (findIndex(risk, "ISO3", key)) {
+      return parseFloat(risk[findIndex(risk, "ISO3", key)][selectedMetric]); }
+    else {
+      console.log("didn't work");
+      return undefined;
+    }
+  }
+
+  // function that styles layer
+  function getStyle(feature) {
+      return {
+          weight: 0,
+          fillOpacity: 0.7,
+          fillColor: getColor(feature)
+      };
+  }
+
+  function getColor(feature) {
+    var iso3Value = (feature.properties.ISO3);
+    var theValue = getValue(iso3Value);
+    if (theValue) {
+      return color(theValue);
+    } else {
+      return "#aaa";
+    }
+  }
+
+  // Color the map based on metric
+  function colorMap() {
+
+    map.removeLayer(choroplethLayer);
+
+    choroplethLayer = L.geoJson(countriesData,  {
+        style: getStyle,
+        onEachFeature: onEachFeature
+    }).addTo(map);
+
+  }
+
+  // Respond to a country selection
+  var selectCountry = function(countryName) {
+
+    console.log("selected a country");
+
+    selectedCountry = countryName;
+    selectedCountryIndex = findIndex(risk, "COUNTRY", selectedCountry);
+
+    // Response functions
+    zoomToCountry();
+    highlightCountry();
+    displayArcs();
+    displayCountryText();
+
+  }
+  selectCountry("Somalia");
+
+  // Respond to a metric selection
+  var selectMetric = function(metricName) {
+
+    selectedMetric = metricName;
+    selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
+
+    // Response functions
+    colorMap();
+    displayArcs();
+    displayMetricText();
+
+  }
+  selectMetric("INFORM RISK");
+
+  function zoomToCountry() {
+
+  }
+
+  // Displaying arcs
+  function displayArcs() {
+
+    populateVisibleFields();
+
+    backgroundArcGroup.selectAll("path").remove();
+    arcGroup.selectAll("path").remove();
+    textArcGroup.selectAll("text").remove();
+
+    generateArcs();
+
+  }
+
+  // Highlight the selected country
+  function highlightCountry() {
+
+  }
+
+  // Populate country text fields
+  function displayCountryText() {
+    console.log("displaying country text: " + selectedCountry);
+    var countryNameText = d3.select("h1")
+    countryNameText.text(selectedCountry);
+  }
+
+  // Populate metric text fields
+  function displayMetricText() {
+
+  }
+
+
+  //////////////////////
+  // Helper functions //
+  //////////////////////
+
+  // Creates an svg arc that can be added to the svg container
+  function svgArc(inner, outer, start, end) {
+    return d3.svg.arc().innerRadius(inner).outerRadius(outer).startAngle(start).endAngle(end);
+  }
+
+  // Fill visibleArcs array with new arcs based on visibleFields array and selectedCountryIndex
+  function generateArcs() {
+
+    visibleArcs = [];
+    backgroundArcs = [];
+    textArcs = [];
+
+    var arcWidth = (outer - inner) / visibleFields.length;
+
+    for (var i = 0; i < visibleFields.length; i++) {
+
+      // Gray background arcs
+      var newBackgroundArc = svgArc(inner + 3 + (i * arcWidth),
+                                    inner - 3 + (i + 1) * arcWidth,
+                                    0.002 * tau,
+                                    tau);
+
+      backgroundArcs.push(newBackgroundArc);
+
+      backgroundArcGroup.append("path")
+          .style("fill", "#d7d7d8")//"#d7d7d8")
+          .attr("d", backgroundArcs[i]);
+
+      // Visible red arcs
+      var theValue = parseFloat(risk[selectedCountryIndex][visibleFields[i]]);
+
+      var newArc = svgArc(inner + 1 + (i * arcWidth),
+                          inner - 1 + (i + 1) * arcWidth,
+                          0.002 * tau,
+                          (theValue / 10) * tau)
+
+      visibleArcs.push(newArc);
+
+      arcGroup.append("path")
+          .style("fill", "#ed1b2e")
+          .attr("class", "arc")
+          .attr("d", visibleArcs[i])
+          .attr("id", visibleFields[i] + " arc")
+          .on("mouseover", function(d) {
+              d3.select(this).style("fill", "#fd2b3e");
+            })
+          .on("mouseout", function(d) {
+              d3.select(this).style("fill", "#ed1b2e");
+            })
+          .on("click", function(d) {
+              var id = this.getAttribute('id');
+              selectMetric(id.substring(0, id.length - 4))
+            });
+
+      // Arc text labels
+      newTextArc = svgArc(inner + (i * arcWidth) + Math.sqrt(arcWidth),
+                          inner + arcWidth / 12 + (i * arcWidth),
+                          0.004 * tau,
+                          tau / 2);
+
+      textArcs.push(newTextArc);
+
+      textArcGroup.append("path")
+          .style("opacity", 0)
+          .attr("d", textArcs[i])
+          .attr("id", visibleFields[i] + " text arc");
+
+      textArcGroup.append("text")
+        .style("font-size", Math.sqrt(arcWidth) * 3)
+        .style("text-anchor", "start")
+        .style("fill", "#000")
+        .style("font-family", "Helvetica, Arial, sans-serif")
+        .append("textPath")
+        //.attr("textLength",function(d,i){return 90-i*5 ;})
+        .attr("xlink:href","#" + visibleFields[i] + " text arc")
+        .attr("pointer-events", "none")
+        //.attr("startOffset",function(d,i){return 3/20;})
+        .text(visibleFields[i])//*/
+
+    }
+  }
+
+}
+
+
+</script>
