@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+
+<style>
+
+.parentToMetric:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+</style>
+
 <body>
 <script src="d3.v3.min.js"></script>
 <script src="queue.v1.min.js"></script>
@@ -12,10 +22,11 @@
     <h3 style="font-size: 1em; margin-top: 2em">Index for Risk Management 2015 Scores</h3>
     <h1 style="font-size: 3.5em; margin-top: 0;"></h1>
   </div>
-  <div style="position: absolute; left: 30%; right: 30%; top: 50%; bottom: 45%; text-align: center; vertical-align: middle">
-    <p id="thisMetricParentParent" style="font-size: 0.8em;"></p>
-    <p id="thisMetricParent" style="font-size: 0.9em;"></p>
-    <p id="thisMetric" style="font-size: 1em;"></p>
+  <div style="position: absolute; left: 30%; right: 30%; top: 46%; bottom: 49%; text-align: center;">
+    <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.6em; color: #d7d7d8;"></p>
+    <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.75em; color: #9f9fa3;"></p>
+    <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.9em; color: #6d6e70;"></p>
+    <p id="thisMetric" style="font-size: 1.3em; color: #000; padding-top: 0;"></p>
   </div>
 </div>
 <div id="map" style="position: absolute; bottom: 0%; top: 0%; left: 50%; right: 0%; background: #fff;"></div>
@@ -113,23 +124,87 @@ function ready(error, risk) {
                                 noWrap: true
                             },
                             maxZoom: 6
-                          }).setView([0, 0], 2);
+                          }).fitBounds([[12.02464,51.13387],[-1.68325,40.98105]]);
 
   var choroplethLayer = L.geoJson().addTo(map);
 
+  console.log(map._layers[33])//.fire('click');
+
+  console.log(choroplethLayer);
+
   function onEachFeature(feature, layer) {
         layer.on({
-            //mousemove: mousemove,
-            //mouseout: mouseout,
-            click: zoomToFeature
+            //mouseover: highlightFeature,
+            //mouseout: resetHighlight,
+            click: clickedFeature
         });
-    }
+  }
+
+  var clickedLayer = undefined;
 
   // Zooming map to country
-  function zoomToFeature(e) {
-    console.log(e.target.feature.properties.ISO3);
+  function clickedFeature(e) {
+
     selectCountry(risk[findIndex(risk, "ISO3", e.target.feature.properties.ISO3)]["COUNTRY"]);
     map.fitBounds(e.target.getBounds());
+
+    if (clickedLayer) { clickedLayer.setStyle({ weight: 0 }) };
+
+    clickedLayer = e.target;
+
+    clickedLayer.setStyle({
+        weight: 6,
+        color: '#6d6e70',
+        dashArray: ''
+    });
+
+    //////////////////////// fix me
+    if (noClicks) {
+
+      noClicks = false;
+
+      colorMap();
+
+      console.log("got here");
+
+      clickedLayer.setStyle({
+          weight: 6,
+          color: '#6d6e70',
+          dashArray: ''
+      });
+    }
+
+    if (!L.Browser.ie && !L.Browser.opera) {
+        clickedLayer.bringToFront();
+    }
+
+
+  }
+
+  function highlightFeature(e) {
+
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 4,
+        color: '#666',
+        dashArray: '',
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera) {
+        layer.bringToFront();
+    }
+  }
+
+  function resetHighlight(e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 0,
+        color: '#666',
+        dashArray: '',
+    });
+
   }
 
   // grap value of the selected metric given country code
@@ -137,7 +212,6 @@ function ready(error, risk) {
     if (findIndex(risk, "ISO3", key)) {
       return parseFloat(risk[findIndex(risk, "ISO3", key)][selectedMetric]); }
     else {
-      console.log("didn't work");
       return undefined;
     }
   }
@@ -145,11 +219,23 @@ function ready(error, risk) {
   // function that styles layer
   function getStyle(feature) {
       return {
-          weight: 0,
+          weight: getWeight(feature),
+          color: "#666",
           fillOpacity: 0.7,
           fillColor: getColor(feature)
       };
   }
+
+  function getWeight(feature) {
+    if (noClicks && feature.properties.ISO3 === "SOM") {
+      console.log(noClicks);
+      return 6;
+    } else {
+      return 0;
+    }
+  }
+
+  var noClicks = true;
 
   function getColor(feature) {
     var iso3Value = (feature.properties.ISO3);
@@ -176,14 +262,10 @@ function ready(error, risk) {
   // Respond to a country selection
   var selectCountry = function(countryName) {
 
-    console.log("selected a country");
-
     selectedCountry = countryName;
     selectedCountryIndex = findIndex(risk, "COUNTRY", selectedCountry);
 
     // Response functions
-    zoomToCountry();
-    highlightCountry();
     displayArcs();
     displayCountryText();
     displayMetricText();
@@ -205,10 +287,6 @@ function ready(error, risk) {
   }
   selectMetric("INFORM RISK");
 
-  function zoomToCountry() {
-
-  }
-
   // Displaying arcs
   function displayArcs() {
 
@@ -222,15 +300,9 @@ function ready(error, risk) {
 
   }
 
-  // Highlight the selected country
-  function highlightCountry() {
-
-  }
-
   // Populate country text fields
   function displayCountryText() {
 
-    console.log("displaying country text: " + selectedCountry);
     var countryNameText = d3.select("h1")
     countryNameText.text(selectedCountry);
 
@@ -242,16 +314,52 @@ function ready(error, risk) {
       selectedMetricValue = risk[selectedCountryIndex][selectedMetric] === "null" ? "no estimation" : risk[selectedCountryIndex][selectedMetric];
 
       d3.select("#thisMetric").text(
-        selectedMetric + ": " + selectedMetricValue
-      );
+        selectedMetric.toUpperCase() + ": "
+      ).append("span").style("font-weight", "bold").text(selectedMetricValue);
 
-      d3.select("#thisMetricParent").text(
-        parentMetric(selectedMetric) + ": " + risk[selectedCountryIndex][parentMetric(selectedMetric)]
-      )
+      if (parentMetric(selectedMetric)) {
+        d3.select("#thisMetricParent").text(
+          parentMetric(selectedMetric).toUpperCase() + ": "
+        ).append("span").style("font-weight", "bold").text(risk[selectedCountryIndex][parentMetric(selectedMetric)]);
 
-      d3.select("#thisMetricParentParent").text(
-        parentMetric(parentMetric(selectedMetric)) + ": " + risk[selectedCountryIndex][parentMetric(parentMetric(selectedMetric))]
-      )
+        d3.select("#thisMetricParent").on("click", function() {
+
+          selectedMetric = parentMetric(selectedMetric);
+          selectMetric(selectedMetric);
+        });
+      } else {
+        d3.select("#thisMetricParent").text("");
+      }
+
+      if (parentMetric(parentMetric(selectedMetric))) {
+        d3.select("#thisMetricParentParent").text(
+          parentMetric(parentMetric(selectedMetric)).toUpperCase() + ": "
+        ).append("span").style("font-weight", "bold").text(risk[selectedCountryIndex][parentMetric(parentMetric(selectedMetric))])
+
+        d3.select("#thisMetricParentParent").on("click", function() {
+
+          selectedMetric = parentMetric(parentMetric(selectedMetric));
+          selectMetric(selectedMetric);
+
+        });
+      } else {
+        d3.select("#thisMetricParentParent").text("");
+      }
+
+      if (parentMetric(parentMetric(parentMetric(selectedMetric)))) {
+        d3.select("#thisMetricParentParentParent").text(
+          parentMetric(parentMetric(parentMetric(selectedMetric))).toUpperCase() + ": "
+        ).append("span").style("font-weight", "bold").text(risk[selectedCountryIndex][parentMetric(parentMetric(selectedMetric))]);
+
+        d3.select("#thisMetricParentParentParent").on("click", function() {
+
+          selectedMetric = parentMetric(parentMetric(parentMetric(selectedMetric)));
+          selectMetric(selectedMetric);
+
+        });
+      } else {
+        d3.select("#thisMetricParentParentParent").text("");
+      }
 
   }
 
@@ -319,7 +427,7 @@ function ready(error, risk) {
       newTextArc = svgArc(inner + (i * arcWidth) + Math.sqrt(arcWidth),
                           inner + arcWidth / 12 + (i * arcWidth),
                           0.004 * tau,
-                          tau / 2);
+                          tau * 0.75);
 
       textArcs.push(newTextArc);
 
@@ -349,7 +457,7 @@ function ready(error, risk) {
             var id = this.getAttribute('id');
             selectMetric(id.substring(0, id.length - 4))
           })
-        .text(visibleFields[i])
+        .text(visibleFields[i].toUpperCase())
 
     }
   }
