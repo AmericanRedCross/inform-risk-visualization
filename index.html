@@ -7,8 +7,16 @@
 <script src='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet' />
 
-<div id="container" style="position: absolute; bottom: 0%; top: 0; left: 0; right: 50%; background: #fff;">
-  <h1></h1>
+<div id="container" style="font-family: Helvetica, Arial, sans-serif; position: absolute; bottom: 0%; top: 0; left: 0; right: 50%; background: #fff;">
+  <div style="position: absolute; left: 2em;">
+    <h3 style="font-size: 1em; margin-top: 2em">Index for Risk Management 2015 Scores</h3>
+    <h1 style="font-size: 3.5em; margin-top: 0;"></h1>
+  </div>
+  <div style="position: absolute; left: 30%; right: 30%; top: 50%; bottom: 45%; text-align: center; vertical-align: middle">
+    <p id="thisMetricParentParent" style="font-size: 0.8em;"></p>
+    <p id="thisMetricParent" style="font-size: 0.9em;"></p>
+    <p id="thisMetric" style="font-size: 1em;"></p>
+  </div>
 </div>
 <div id="map" style="position: absolute; bottom: 0%; top: 0%; left: 50%; right: 0%; background: #fff;"></div>
 
@@ -59,7 +67,7 @@ var svg = d3.select("#container").append("svg")
     .attr("width", width / 2)
     .attr("height", height)
   .append("g")
-    .attr("transform", "translate(" + width / 4 + "," + height / 2 + ")");
+    .attr("transform", "translate(" + width / 4 + "," + height / 1.7 + ")");
 
 // Create and svg grouping to hold our visualization arcs
 var backgroundArcGroup = svg.append("g");
@@ -71,6 +79,17 @@ var populateVisibleFields = function() {
   visibleFields = fieldHierarchy[selectedMetricIndex].subset;
 }
 populateVisibleFields();
+
+// A function that, given a metric name, returns the parent metric
+var parentMetric = function(metric) {
+  for (var i = 0; i < fieldHierarchy.length; i++) {
+    for (var j = 0; j < fieldHierarchy[i].subset.length; j++) {
+      if (fieldHierarchy[i].subset[j] === metric) {
+        return fieldHierarchy[i].field;
+      }
+    }
+  }
+}
 
 // Load data
 queue()
@@ -93,7 +112,7 @@ function ready(error, risk) {
                                 continuousWorld: false,
                                 noWrap: true
                             },
-                            maxZoom: 5
+                            maxZoom: 6
                           }).setView([0, 0], 2);
 
   var choroplethLayer = L.geoJson().addTo(map);
@@ -167,6 +186,7 @@ function ready(error, risk) {
     highlightCountry();
     displayArcs();
     displayCountryText();
+    displayMetricText();
 
   }
   selectCountry("Somalia");
@@ -209,13 +229,29 @@ function ready(error, risk) {
 
   // Populate country text fields
   function displayCountryText() {
+
     console.log("displaying country text: " + selectedCountry);
     var countryNameText = d3.select("h1")
     countryNameText.text(selectedCountry);
+
   }
 
   // Populate metric text fields
   function displayMetricText() {
+
+      selectedMetricValue = risk[selectedCountryIndex][selectedMetric] === "null" ? "no estimation" : risk[selectedCountryIndex][selectedMetric];
+
+      d3.select("#thisMetric").text(
+        selectedMetric + ": " + selectedMetricValue
+      );
+
+      d3.select("#thisMetricParent").text(
+        parentMetric(selectedMetric) + ": " + risk[selectedCountryIndex][parentMetric(selectedMetric)]
+      )
+
+      d3.select("#thisMetricParentParent").text(
+        parentMetric(parentMetric(selectedMetric)) + ": " + risk[selectedCountryIndex][parentMetric(parentMetric(selectedMetric))]
+      )
 
   }
 
@@ -264,14 +300,15 @@ function ready(error, risk) {
 
       arcGroup.append("path")
           .style("fill", "#ed1b2e")
+          .style("cursor", "pointer")
           .attr("class", "arc")
           .attr("d", visibleArcs[i])
           .attr("id", visibleFields[i] + " arc")
           .on("mouseover", function(d) {
-              d3.select(this).style("fill", "#fd2b3e");
+              d3.select(this).style("fill", "#ff4d5f").style("stroke", "#ecb731");
             })
           .on("mouseout", function(d) {
-              d3.select(this).style("fill", "#ed1b2e");
+              d3.select(this).style("fill", "#ed1b2e").style("stroke", "none");
             })
           .on("click", function(d) {
               var id = this.getAttribute('id');
@@ -296,12 +333,23 @@ function ready(error, risk) {
         .style("text-anchor", "start")
         .style("fill", "#000")
         .style("font-family", "Helvetica, Arial, sans-serif")
+        .style("cursor", "pointer")
         .append("textPath")
-        //.attr("textLength",function(d,i){return 90-i*5 ;})
         .attr("xlink:href","#" + visibleFields[i] + " text arc")
-        .attr("pointer-events", "none")
-        //.attr("startOffset",function(d,i){return 3/20;})
-        .text(visibleFields[i])//*/
+        .attr("id", visibleFields[i] + " txt")
+        .on("mouseover", function(d) {
+            var id = this.getAttribute("id");
+            d3.select("#" + id.substring(0, id.length - 4)).style("fill", "#ff4d5f").style("stroke", "#ecb731");
+          })
+        .on("mouseout", function(d) {
+            var id = this.getAttribute("id");
+            d3.select("#" + id.substring(0, id.length - 4)).style("fill", "#ed1b2e").style("stroke", "none");
+          })
+        .on("click", function(d) {
+            var id = this.getAttribute('id');
+            selectMetric(id.substring(0, id.length - 4))
+          })
+        .text(visibleFields[i])
 
     }
   }
