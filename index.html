@@ -8,6 +8,11 @@
   cursor: pointer;
 }
 
+.link:hover {
+  text-decoration: underline;
+  color: #333;
+}
+
 </style>
 
 <body>
@@ -19,7 +24,9 @@
 
 <div id="container" style="font-family: Helvetica, Arial, sans-serif; position: absolute; bottom: 0%; top: 0; left: 0; right: 50%; background: #fff;">
   <div style="position: absolute; left: 2em;">
-    <h3 style="font-size: 1em; margin-top: 1em">Index for Risk Management 2015 Scores</h3>
+    <p class="link" style="font-size: 1em; margin-top: 1em">
+      <a href="http://www.inform-index.org/" target="_blank" style="text-decoration: none; color: #6d6e70;">Index for Risk Management 2015 Scores</a>
+    </p>
     <h1 style="font-size: 3.2em; margin-top: 0;"></h1>
   </div>
   <div style="position: absolute; left: 30%; right: 30%; top: 46%; bottom: 49%; text-align: center;">
@@ -205,7 +212,6 @@ function ready(error, risk) {
 
   function getWeight(feature) {
     if (feature.properties.ISO3 === getISO3(selectedCountry)) {
-      console.log("the feature being drawn matches " + getISO3(selectedCountry));
       return 6;
     } else {
       return 0;
@@ -410,6 +416,8 @@ function ready(error, risk) {
           .attr("d", visibleArcs[i])
           .attr("id", visibleFields[i] + " arc")
           .on("mouseover", function(d) {
+              var id = this.getAttribute('id');
+              theValue = parseFloat(risk[selectedCountryIndex][id.substring(0, id.length - 4)]);
               d3.select(this)
                 .style("fill", color(theValue * 0.8))
                 .style("stroke", "yellow")
@@ -417,7 +425,14 @@ function ready(error, risk) {
                 .style("stroke-opacity", 0.3);
             })
           .on("mouseout", function(d) {
-              d3.select(this).style("fill", color(theValue)).style("stroke", "none");
+              var id = this.getAttribute('id');
+              theValue = parseFloat(risk[selectedCountryIndex][id.substring(0, id.length - 4)]);
+              d3.select(this)
+                .style("fill", color(theValue))
+                .style("stroke", "white")
+                .style("stroke-width", 0)
+                .style("stroke-opacity", 0);
+              console.log("mouse left");
             })
           .on("click", function(d) {
               var id = this.getAttribute('id');
@@ -425,10 +440,10 @@ function ready(error, risk) {
             });
 
       // Arc text labels
-      newTextArc = svgArc(inner + (i * arcWidth) + Math.sqrt(arcWidth) * 0.85,
-                          inner + Math.sqrt(arcWidth) * 1.5,
-                          0.25 * tau,
-                          0.75 * tau);
+      newTextArc = svgArc(inner + 1 + (i * arcWidth),
+                          inner + (arcWidth/Math.sqrt(arcWidth) * 1.5) + (i * arcWidth),
+                          0.01 * tau,
+                          0.99 * tau);
 
       textArcs.push(newTextArc);
 
