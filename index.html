@@ -19,8 +19,8 @@
 
 <div id="container" style="font-family: Helvetica, Arial, sans-serif; position: absolute; bottom: 0%; top: 0; left: 0; right: 50%; background: #fff;">
   <div style="position: absolute; left: 2em;">
-    <h3 style="font-size: 1em; margin-top: 2em">Index for Risk Management 2015 Scores</h3>
-    <h1 style="font-size: 3.5em; margin-top: 0;"></h1>
+    <h3 style="font-size: 1em; margin-top: 1em">Index for Risk Management 2015 Scores</h3>
+    <h1 style="font-size: 3.2em; margin-top: 0;"></h1>
   </div>
   <div style="position: absolute; left: 30%; right: 30%; top: 46%; bottom: 49%; text-align: center;">
     <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.6em; color: #d7d7d8;"></p>
@@ -56,15 +56,21 @@ var selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
 
 // Visual variables
 var width = document.getElementById("container").clientWidth * 2,
-    height = document.getElementById("container").clientHeight,
+    height = document.getElementById("container").clientHeight * 0.9,
     tau = 2 * Math.PI,
     inner = width / 8,
     outer = width / 5,
-    colors = ["#fff", "#ed1b2e", "#cd0b1e"];
+    colors = ["#FFEFF4","#F7BBBF", "#ed1b2e"],
+    oppositeColors = ["#eee", "#fff", "#fff"];
 
 var color = d3.scale.linear()
-		.domain([0.1, 7.5, 9.9])
+		.domain([0, 2.5, 6.5])
 		.range([colors[0], colors[1], colors[2]])
+		.interpolate(d3.interpolateLab);
+
+var oppositeColor = d3.scale.linear()
+		.domain([0.1, 6, 10])
+		.range([oppositeColors[0], oppositeColors[1], oppositeColors[2]])
 		.interpolate(d3.interpolateLab);
 
 // Empty arrays
@@ -76,9 +82,9 @@ var textArcs = [];
 // Create the SVG container, and apply a transform such that the origin is the center of the canvas
 var svg = d3.select("#container").append("svg")
     .attr("width", width / 2)
-    .attr("height", height)
+    .attr("height", height *1.1)
   .append("g")
-    .attr("transform", "translate(" + width / 4 + "," + height / 1.7 + ")");
+    .attr("transform", "translate(" + width / 4 + "," + height / 1.5 + ")");
 
 // Create and svg grouping to hold our visualization arcs
 var backgroundArcGroup = svg.append("g");
@@ -128,10 +134,6 @@ function ready(error, risk) {
 
   var choroplethLayer = L.geoJson().addTo(map);
 
-  console.log(map._layers[33])//.fire('click');
-
-  console.log(choroplethLayer);
-
   function onEachFeature(feature, layer) {
         layer.on({
             //mouseover: highlightFeature,
@@ -148,39 +150,11 @@ function ready(error, risk) {
     selectCountry(risk[findIndex(risk, "ISO3", e.target.feature.properties.ISO3)]["COUNTRY"]);
     map.fitBounds(e.target.getBounds());
 
-    if (clickedLayer) { clickedLayer.setStyle({ weight: 0 }) };
-
-    clickedLayer = e.target;
-
-    clickedLayer.setStyle({
-        weight: 6,
-        color: '#6d6e70',
-        dashArray: ''
-    });
-
-    //////////////////////// fix me
-    if (noClicks) {
-
-      noClicks = false;
-
-      colorMap();
-
-      console.log("got here");
-
-      clickedLayer.setStyle({
-          weight: 6,
-          color: '#6d6e70',
-          dashArray: ''
-      });
-    }
-
-    if (!L.Browser.ie && !L.Browser.opera) {
-        clickedLayer.bringToFront();
-    }
-
+    colorMap();
 
   }
 
+/*
   function highlightFeature(e) {
 
     var layer = e.target;
@@ -194,7 +168,7 @@ function ready(error, risk) {
     if (!L.Browser.ie && !L.Browser.opera) {
         layer.bringToFront();
     }
-  }
+  } //*/
 
   function resetHighlight(e) {
     var layer = e.target;
@@ -205,46 +179,6 @@ function ready(error, risk) {
         dashArray: '',
     });
 
-  }
-
-  // grap value of the selected metric given country code
-  function getValue(key) {
-    if (findIndex(risk, "ISO3", key)) {
-      return parseFloat(risk[findIndex(risk, "ISO3", key)][selectedMetric]); }
-    else {
-      return undefined;
-    }
-  }
-
-  // function that styles layer
-  function getStyle(feature) {
-      return {
-          weight: getWeight(feature),
-          color: "#666",
-          fillOpacity: 0.7,
-          fillColor: getColor(feature)
-      };
-  }
-
-  function getWeight(feature) {
-    if (noClicks && feature.properties.ISO3 === "SOM") {
-      console.log(noClicks);
-      return 6;
-    } else {
-      return 0;
-    }
-  }
-
-  var noClicks = true;
-
-  function getColor(feature) {
-    var iso3Value = (feature.properties.ISO3);
-    var theValue = getValue(iso3Value);
-    if (theValue) {
-      return color(theValue);
-    } else {
-      return "#aaa";
-    }
   }
 
   // Color the map based on metric
@@ -258,6 +192,47 @@ function ready(error, risk) {
     }).addTo(map);
 
   }
+
+  // function that styles layer
+  function getStyle(feature) {
+      return {
+          weight: getWeight(feature),
+          color: "#666",
+          fillOpacity: 0.7,
+          fillColor: getColor(feature)
+      };
+  }
+
+  function getWeight(feature) {
+    if (feature.properties.ISO3 === getISO3(selectedCountry)) {
+      console.log("the feature being drawn matches " + getISO3(selectedCountry));
+      return 6;
+    } else {
+      return 0;
+    }
+  }
+
+  function getColor(feature) {
+    var iso3Value = (feature.properties.ISO3);
+    var theValue = getValue(iso3Value);
+    if (theValue) {
+      return color(theValue);
+    } else {
+      return "#aaa";
+    }
+  }
+
+  // grap value of the selected metric given country code
+  function getValue(key) {
+    if (findIndex(risk, "ISO3", key)) {
+      return parseFloat(risk[findIndex(risk, "ISO3", key)][selectedMetric]); }
+    else {
+      return undefined;
+    }
+  }
+
+
+
 
   // Respond to a country selection
   var selectCountry = function(countryName) {
@@ -294,6 +269,8 @@ function ready(error, risk) {
 
     backgroundArcGroup.selectAll("path").remove();
     arcGroup.selectAll("path").remove();
+    textArcGroup.selectAll("path").remove();
+    textArcGroup.selectAll("textPath").remove();
     textArcGroup.selectAll("text").remove();
 
     generateArcs();
@@ -368,9 +345,17 @@ function ready(error, risk) {
   // Helper functions //
   //////////////////////
 
+  function getISO3(nameOfCountry) {
+    if (findIndex(risk, "COUNTRY", nameOfCountry)) {
+      return risk[findIndex(risk, "COUNTRY", nameOfCountry)]["ISO3"]; }
+    else {
+      return undefined;
+    }
+  }
+
   // Creates an svg arc that can be added to the svg container
   function svgArc(inner, outer, start, end) {
-    return d3.svg.arc().innerRadius(inner).outerRadius(outer).startAngle(start).endAngle(end);
+    return d3.svg.arc().innerRadius(inner).outerRadius(outer).startAngle(start + tau / 2).endAngle(end + tau / 2);
   }
 
   // Fill visibleArcs array with new arcs based on visibleFields array and selectedCountryIndex
@@ -393,8 +378,20 @@ function ready(error, risk) {
       backgroundArcs.push(newBackgroundArc);
 
       backgroundArcGroup.append("path")
-          .style("fill", "#d7d7d8")//"#d7d7d8")
-          .attr("d", backgroundArcs[i]);
+          .style("fill", "#9f9fa3")
+          .attr("d", backgroundArcs[i])
+          .attr("id", visibleFields[i] + " arc")
+          .style("pointer-events", "pointer")
+          .on("mouseover", function(d) {
+              d3.select(this).style("stroke", "yellow");
+            })
+          .on("mouseout", function(d) {
+              d3.select(this).style("stroke", "#fff");
+            })
+          .on("click", function(d) {
+              var id = this.getAttribute('id');
+              selectMetric(id.substring(0, id.length - 4))
+            });
 
       // Visible red arcs
       var theValue = parseFloat(risk[selectedCountryIndex][visibleFields[i]]);
@@ -407,16 +404,20 @@ function ready(error, risk) {
       visibleArcs.push(newArc);
 
       arcGroup.append("path")
-          .style("fill", "#ed1b2e")
+          .style("fill", color(theValue))
           .style("cursor", "pointer")
           .attr("class", "arc")
           .attr("d", visibleArcs[i])
           .attr("id", visibleFields[i] + " arc")
           .on("mouseover", function(d) {
-              d3.select(this).style("fill", "#ff4d5f").style("stroke", "#ecb731");
+              d3.select(this)
+                .style("fill", color(theValue * 0.8))
+                .style("stroke", "yellow")
+                .style("stroke-width", 3)
+                .style("stroke-opacity", 0.3);
             })
           .on("mouseout", function(d) {
-              d3.select(this).style("fill", "#ed1b2e").style("stroke", "none");
+              d3.select(this).style("fill", color(theValue)).style("stroke", "none");
             })
           .on("click", function(d) {
               var id = this.getAttribute('id');
@@ -424,40 +425,32 @@ function ready(error, risk) {
             });
 
       // Arc text labels
-      newTextArc = svgArc(inner + (i * arcWidth) + Math.sqrt(arcWidth),
-                          inner + arcWidth / 12 + (i * arcWidth),
-                          0.004 * tau,
-                          tau * 0.75);
+      newTextArc = svgArc(inner + (i * arcWidth) + Math.sqrt(arcWidth) * 0.85,
+                          inner + Math.sqrt(arcWidth) * 1.5,
+                          0.25 * tau,
+                          0.75 * tau);
 
       textArcs.push(newTextArc);
 
       textArcGroup.append("path")
           .style("opacity", 0)
+          .style("pointer-events", "none")
           .attr("d", textArcs[i])
           .attr("id", visibleFields[i] + " text arc");
 
-      textArcGroup.append("text")
-        .style("font-size", Math.sqrt(arcWidth) * 3)
-        .style("text-anchor", "start")
-        .style("fill", "#000")
-        .style("font-family", "Helvetica, Arial, sans-serif")
-        .style("cursor", "pointer")
+      textArcGroup
+        .append("text")
+          .style("font-size", Math.sqrt(arcWidth) * 3)
+          .style("fill", oppositeColor(theValue))
+          .style("font-family", "Helvetica, Arial, sans-serif")
+          .style("pointer-events", "none")
+          .attr("id", visibleFields[i] + " text arc")
         .append("textPath")
-        .attr("xlink:href","#" + visibleFields[i] + " text arc")
-        .attr("id", visibleFields[i] + " txt")
-        .on("mouseover", function(d) {
-            var id = this.getAttribute("id");
-            d3.select("#" + id.substring(0, id.length - 4)).style("fill", "#ff4d5f").style("stroke", "#ecb731");
-          })
-        .on("mouseout", function(d) {
-            var id = this.getAttribute("id");
-            d3.select("#" + id.substring(0, id.length - 4)).style("fill", "#ed1b2e").style("stroke", "none");
-          })
-        .on("click", function(d) {
-            var id = this.getAttribute('id');
-            selectMetric(id.substring(0, id.length - 4))
-          })
-        .text(visibleFields[i].toUpperCase())
+          .attr("xlink:href","#" + visibleFields[i] + " text arc")
+          .style("pointer-events", "pointer")
+          .style("text-anchor", "middle")
+          .attr("startOffset", "26%")
+          .text(visibleFields[i].toUpperCase() + ": " + theValue);
 
     }
   }
