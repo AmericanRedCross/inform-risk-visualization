@@ -22,21 +22,26 @@
 <script src='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet' />
 
-<div id="container" style="font-family: Helvetica, Arial, sans-serif; position: absolute; bottom: 0%; top: 0; left: 0; right: 50%; background: #fff;">
+<div id="pageContainer" style="font-family: Helvetica, Arial, sans-serif;">
   <div style="position: absolute; left: 2em;">
-    <p class="link" style="font-size: 1em; margin-top: 1em">
-      <a href="http://www.inform-index.org/" target="_blank" style="text-decoration: none; color: #6d6e70;">Index for Risk Management 2015 Scores</a>
-    </p>
-    <h1 style="font-size: 3.2em; margin-top: 0;"></h1>
+    <h1 style="font-size: 3.2em; margin-top: 5%;"></h1>
   </div>
-  <div style="position: absolute; left: 30%; right: 30%; top: 46%; bottom: 49%; text-align: center;">
-    <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.6em; color: #d7d7d8;"></p>
-    <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.75em; color: #9f9fa3;"></p>
-    <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.9em; color: #6d6e70;"></p>
-    <p id="thisMetric" style="font-size: 1.3em; color: #000; padding-top: 0;"></p>
+  <div id="svgContainer" style="position: absolute; bottom: 5%; top: 25%; left: 0; right: 50%;">
+    <div style="position: absolute; left: 30%; right: 30%; top: 30%; bottom: 0%; text-align: center;">
+      <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.6em; color: #d7d7d8;"></p>
+      <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.75em; color: #9f9fa3;"></p>
+      <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.9em; color: #6d6e70;"></p>
+      <p id="thisMetric" style="font-size: 1.4em; color: #000; padding-top: 0; margin-bottom: 0em;"></p>
+      <p id="countryRankingLabel"  style="font-size: 0.8em; color: #6D6E70; font-style: italic; margin-top: 0.5em; width: 70%; margin-left: 15%;"></p>
+    </div>
+    <div id="footer" style="position: absolute; bottom: 0; top: 95%; left: 0; right: 0;">
+      <p class="link" style="font-size: 1em; margin-top: 2em; width: 100%; text-align: center;">
+        <a href="http://www.inform-index.org/" target="_blank" style="text-decoration: none; color: #6d6e70;">Source: Index for Risk Management 2015 Scores</a>
+      </p>
+    </div>
   </div>
+  <div id="map" style="position: absolute; bottom: 0%; top: 25%; left: 50%; right: 0%;"></div>
 </div>
-<div id="map" style="position: absolute; bottom: 0%; top: 0%; left: 50%; right: 0%; background: #fff;"></div>
 
 <!-- Array with hierarchy of fields -->
 <script src="field-hierarchy.js"></script>
@@ -44,36 +49,31 @@
 <!-- Load countries geojson object -->
 <script src="countries.js"></script>
 
+<!-- Define functions to return country risk ranking by region based on data array and metric -->
+<script src="rankings.js"></script>
+
 <script>
 
 // Hard code staring points
 var selectedMetric = "INFORM RISK";
-var selectedCountry = "Somalia";
-
-// Returns index of an attribute with a certain value within an array
-var findIndex = function(array, attr, value) {
-    for(var i = 0; i < array.length; i++) {
-        if(array[i][attr] === value) {
-            return i;
-        }
-    }
-}
+var selectedCountry = "";
+//test//var selectedCountry = "Somalia";
 
 var selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
 
 // Visual variables
-var width = document.getElementById("container").clientWidth * 2,
-    height = document.getElementById("container").clientHeight * 0.9,
+var width = document.getElementById("svgContainer").clientWidth * 2,
+    height = document.getElementById("svgContainer").clientHeight * 0.9,
     tau = 2 * Math.PI,
-    inner = width / 8,
-    outer = width / 5,
-    colors = ["#FFEFF4","#F7BBBF", "#ed1b2e"],
+    inner = height / 3,
+    outer = height / 1.9,
+    colors = ["#FFFFFF","#FFEFDC","#ED1B2E", "#730204"],
     oppositeColors = ["#eee", "#fff", "#fff"];
 
 var color = d3.scale.linear()
-		.domain([0, 2.5, 6.5])
-		.range([colors[0], colors[1], colors[2]])
-		.interpolate(d3.interpolateLab);
+		.domain([-2.0, 3.0, 8.0, 12.0])
+		.range([colors[0], colors[1], colors[2], colors[3]])
+		.interpolate(d3.interpolateHsl);
 
 var oppositeColor = d3.scale.linear()
 		.domain([0.1, 6, 10])
@@ -87,11 +87,11 @@ var backgroundArcs = [];
 var textArcs = [];
 
 // Create the SVG container, and apply a transform such that the origin is the center of the canvas
-var svg = d3.select("#container").append("svg")
+var svg = d3.select("#svgContainer").append("svg")
     .attr("width", width / 2)
-    .attr("height", height *1.1)
+    .attr("height", height * 1.1)
   .append("g")
-    .attr("transform", "translate(" + width / 4 + "," + height / 1.5 + ")");
+    .attr("transform", "translate(" + width / 4 + "," + height / 1.8 + ")");
 
 // Create and svg grouping to hold our visualization arcs
 var backgroundArcGroup = svg.append("g");
@@ -124,6 +124,8 @@ queue()
 function ready(error, risk) {
   if (error) throw error;
 
+  populateRankings(risk);
+
   /////////
   // MAP //
   /////////
@@ -145,46 +147,16 @@ function ready(error, risk) {
         layer.on({
             //mouseover: highlightFeature,
             //mouseout: resetHighlight,
-            click: clickedFeature
+            click: clickedCountry
         });
   }
 
   var clickedLayer = undefined;
 
   // Zooming map to country
-  function clickedFeature(e) {
+  function clickedCountry(e) {
 
     selectCountry(risk[findIndex(risk, "ISO3", e.target.feature.properties.ISO3)]["COUNTRY"]);
-    map.fitBounds(e.target.getBounds());
-
-    colorMap();
-
-  }
-
-/*
-  function highlightFeature(e) {
-
-    var layer = e.target;
-
-    layer.setStyle({
-        weight: 4,
-        color: '#666',
-        dashArray: '',
-    });
-
-    if (!L.Browser.ie && !L.Browser.opera) {
-        layer.bringToFront();
-    }
-  } //*/
-
-  function resetHighlight(e) {
-    var layer = e.target;
-
-    layer.setStyle({
-        weight: 0,
-        color: '#666',
-        dashArray: '',
-    });
 
   }
 
@@ -211,7 +183,7 @@ function ready(error, risk) {
   }
 
   function getWeight(feature) {
-    if (feature.properties.ISO3 === getISO3(selectedCountry)) {
+    if (feature.properties.ISO3 === getISO3(risk, selectedCountry)) {
       return 6;
     } else {
       return 0;
@@ -220,25 +192,13 @@ function ready(error, risk) {
 
   function getColor(feature) {
     var iso3Value = (feature.properties.ISO3);
-    var theValue = getValue(iso3Value);
+    var theValue = parseFloat(getValue(risk, "ISO3", iso3Value));
     if (theValue) {
       return color(theValue);
     } else {
       return "#aaa";
     }
   }
-
-  // grap value of the selected metric given country code
-  function getValue(key) {
-    if (findIndex(risk, "ISO3", key)) {
-      return parseFloat(risk[findIndex(risk, "ISO3", key)][selectedMetric]); }
-    else {
-      return undefined;
-    }
-  }
-
-
-
 
   // Respond to a country selection
   var selectCountry = function(countryName) {
@@ -251,8 +211,11 @@ function ready(error, risk) {
     displayCountryText();
     displayMetricText();
 
+    //map.fitBounds(countriesData.features[2].getBounds());
+    colorMap();
+
   }
-  selectCountry("Somalia");
+  //test//selectCountry("Somalia");
 
   // Respond to a metric selection
   var selectMetric = function(metricName) {
@@ -262,8 +225,11 @@ function ready(error, risk) {
 
     // Response functions
     colorMap();
-    displayArcs();
-    displayMetricText();
+    rank(risk);
+    if(selectedCountry !== "") {
+      displayArcs();
+      displayMetricText();
+    }
 
   }
   selectMetric("INFORM RISK");
@@ -286,8 +252,8 @@ function ready(error, risk) {
   // Populate country text fields
   function displayCountryText() {
 
-    var countryNameText = d3.select("h1")
-    countryNameText.text(selectedCountry);
+    var title = d3.select("h1");
+    title.text(selectedCountry);
 
   }
 
@@ -296,9 +262,11 @@ function ready(error, risk) {
 
       selectedMetricValue = risk[selectedCountryIndex][selectedMetric] === "null" ? "no estimation" : risk[selectedCountryIndex][selectedMetric];
 
-      d3.select("#thisMetric").text(
+      d3.select("#thisMetric").style("font-weight", "900").text(
         selectedMetric.toUpperCase() + ": "
-      ).append("span").style("font-weight", "bold").text(selectedMetricValue);
+      ).append("span").text(selectedMetricValue);
+
+      d3.select("#countryRankingLabel").text("Ranks " + findRank(selectedCountry).GLOBE + " globally and " + findRank(selectedCountry).REGION + " in the " + findRank(selectedCountry).amCrossRegion + " region.");
 
       if (parentMetric(selectedMetric)) {
         d3.select("#thisMetricParent").text(
@@ -351,15 +319,7 @@ function ready(error, risk) {
   // Helper functions //
   //////////////////////
 
-  function getISO3(nameOfCountry) {
-    if (findIndex(risk, "COUNTRY", nameOfCountry)) {
-      return risk[findIndex(risk, "COUNTRY", nameOfCountry)]["ISO3"]; }
-    else {
-      return undefined;
-    }
-  }
-
-  // Creates an svg arc that can be added to the svg container
+  // Creates an svg arc that can be added to the svgContainer
   function svgArc(inner, outer, start, end) {
     return d3.svg.arc().innerRadius(inner).outerRadius(outer).startAngle(start + tau / 2).endAngle(end + tau / 2);
   }
@@ -401,6 +361,12 @@ function ready(error, risk) {
 
       // Visible red arcs
       var theValue = parseFloat(risk[selectedCountryIndex][visibleFields[i]]);
+      var theText = risk[selectedCountryIndex][visibleFields[i]];
+
+      if ( isNaN(theValue) ) {
+        theValue = 0;
+        theText = "no estimate";
+      }
 
       var newArc = svgArc(inner + 1 + (i * arcWidth),
                           inner - 1 + (i + 1) * arcWidth,
@@ -432,7 +398,6 @@ function ready(error, risk) {
                 .style("stroke", "white")
                 .style("stroke-width", 0)
                 .style("stroke-opacity", 0);
-              console.log("mouse left");
             })
           .on("click", function(d) {
               var id = this.getAttribute('id');
@@ -440,8 +405,8 @@ function ready(error, risk) {
             });
 
       // Arc text labels
-      newTextArc = svgArc(inner + 1 + (i * arcWidth),
-                          inner + (arcWidth/Math.sqrt(arcWidth) * 1.5) + (i * arcWidth),
+      newTextArc = svgArc(inner + (i * arcWidth),
+                          inner + (arcWidth/Math.sqrt(arcWidth)) + (i * arcWidth),
                           0.01 * tau,
                           0.99 * tau);
 
@@ -464,11 +429,12 @@ function ready(error, risk) {
           .attr("xlink:href","#" + visibleFields[i] + " text arc")
           .style("pointer-events", "pointer")
           .style("text-anchor", "middle")
-          .attr("startOffset", "26%")
-          .text(visibleFields[i].toUpperCase() + ": " + theValue);
+          .attr("startOffset", "25.5%")
+          .text(visibleFields[i].toUpperCase() + ": " + theText);
 
     }
   }
+
 
 }
 
