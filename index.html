@@ -64,14 +64,26 @@
 
 }
 
+#instructions {
+
+  text-align: center;
+  color: #D7D7D8;
+  font-style: italic;
+  font-weight: lighter;
+  font-size: 3em;
+  padding: 2em;
+  height: 100%;
+
+}
+
 </style>
 
 <body>
 <script src="d3.v3.min.js"></script>
 <script src="queue.v1.min.js"></script>
 
-<script src='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.js'></script>
-<link href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet' />
+<script src='mapbox.js'></script>
+<link href='mapbox.css' rel='stylesheet' />
 
 <div id="pageContainer" style="font-family: Helvetica, Arial, sans-serif;">
   <div id="header">
@@ -86,12 +98,13 @@
     </div>
     <div id="svg" style="position: absolute; top: 3em; bottom: 5%; left: 0%; right: 0%; color: pink;">
       <div style="position: absolute; left: 30%; right: 30%; top: 28%; bottom: 0%; text-align: center;">
-        <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.6em; color: #d7d7d8;"></p>
-        <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.75em; color: #9f9fa3;"></p>
-        <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.9em; color: #6d6e70;"></p>
-        <p id="thisMetric" style="font-size: 1.4em; color: #000; padding-top: 0; margin-bottom: 0em;"></p>
-        <p id="countryRankingLabel"  style="font-size: 0.8em; color: #6D6E70; font-style: italic; margin-top: 0.5em; width: 70%; margin-left: 15%;"></p>
+        <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.5em; color: #d7d7d8;"></p>
+        <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.6em; color: #9f9fa3;"></p>
+        <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.7em; color: #6d6e70;"></p>
+        <p id="thisMetric" style="font-size: 1.2em; color: #000; padding-top: 0; margin-bottom: 0em;"></p>
+        <p id="countryRankingLabel"  style="font-size: 0.75em; color: #6D6E70; font-style: italic; margin-top: 0.5em; width: 70%; margin-left: 15%;"></p>
       </div>
+      <h2 id="instructions">select a country on the map</h2>
     </div>
     <div id="footer" style="position: absolute; bottom: 1em; height: 1em; left: 0; right: 0;">
       <p class="link" style="font-size: 1em; width: 100%; text-align: center; margin: 0;">
@@ -152,7 +165,7 @@ var selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
 var generateSVG = function() {
 
   //if(svg) { svg.remove(); }
-  d3.select("#svg").selectAll("svg").remove()
+  d3.select("#svg").selectAll("svg").remove();
 
   // Visual variables
   width = document.getElementById("svg").clientWidth * 2,
@@ -222,8 +235,10 @@ function ready(error, risk) {
                                 continuousWorld: false,
                                 noWrap: true
                             },
-                            maxZoom: 6
-                          }).fitBounds([[12.02464,51.13387],[-1.68325,40.98105]]);
+                            maxZoom: 6,
+                            center: [0, 0],
+                            zoom: 2
+                          });
 
   var choroplethLayer = L.geoJson().addTo(map);
 
@@ -240,7 +255,9 @@ function ready(error, risk) {
   // Zooming map to country
   function clickedCountry(e) {
 
+    d3.select("#instructions").remove();
     selectCountry(risk[findIndex(risk, "ISO3", e.target.feature.properties.ISO3)]["COUNTRY"]);
+    map.fitBounds(e.target);
 
   }
 
@@ -295,7 +312,6 @@ function ready(error, risk) {
     displayCountryText();
     displayMetricText();
 
-    //map.fitBounds(countriesData.features[2].getBounds());
     colorMap();
 
   }
