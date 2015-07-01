@@ -26,9 +26,9 @@ function ordinalSuffixOf(i) {
 function populateRankings(riskArray) {
 
   countriesData.features.map(function(feature) {
-    rankings["GLOBE"].push(feature.properties.sovereignt);
     var riskLevelObject = riskArray[findIndex(riskArray, "ISO3", feature.properties.ISO3)];
     if (riskLevelObject) {
+      rankings["GLOBE"].push(riskLevelObject.COUNTRY);
       rankings[feature.properties.AmCrossRegion].push(riskLevelObject.COUNTRY);
     }
   });
@@ -65,7 +65,7 @@ function rank(riskArray) {
 
   }
 
-  console.log("Top 3 most vulnerable globally: \n" + "1. " + rankings.GLOBE[0] + "\n" + "2. " + rankings.GLOBE[1] + "\n" + "3. " + rankings.GLOBE[2]);
+  console.log(rankings.GLOBE[0]);
 
 }
 
