@@ -55,6 +55,16 @@ function getValue(riskArray, field, key) {
 
 function rank(riskArray) {
 
+  rankings = {
+    GLOBE: [],
+    AFRICA: [],
+    AMEE: [],
+    LAC: [],
+    US: []
+  };
+
+  populateRankings(riskArray);
+
   for (var i = 0; i < 5; i++) {
 
     rankings[regions[i]].sort(function(a,b) {

@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 
-<link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon">
-
 <style>
 
 #header {
@@ -32,7 +30,7 @@
   position: relative;
 
   font-weight: 100;
-  font-size: 2em;
+  font-size: 1.75em;
 
 }
 
@@ -121,20 +119,7 @@
 
 <script>
 
-// Hard code staring points
-var selectedMetric = "INFORM RISK";
-var selectedCountry = "";
-//test//var selectedCountry = "Somalia";
-
-var selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
-
-// Visual variables
-var width = document.getElementById("svg").clientWidth * 2,
-    height = document.getElementById("svg").clientHeight * 0.9,
-    tau = 2 * Math.PI,
-    inner = height / 3.2,
-    outer = height / 1.9,
-    colors = ["#FFFFFF","#FFEFDC","#ED1B2E", "#730204"],
+var colors = ["#FFFFFF","#FFEFDC","#ED1B2E", "#730204"],
     oppositeColors = ["#eee", "#fff", "#fff"];
 
 var color = d3.scale.linear()
@@ -157,23 +142,45 @@ for (var i = 0; i <= 10; i++) {
       .style("background-color", color(i));
 }
 
+// Hard code staring points
+var selectedMetric = "INFORM RISK";
+var selectedCountry = "";
+//test//var selectedCountry = "Somalia";
+
+var selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
+
+var generateSVG = function() {
+
+  //if(svg) { svg.remove(); }
+  d3.select("#svg").selectAll("svg").remove()
+
+  // Visual variables
+  width = document.getElementById("svg").clientWidth * 2,
+  height = document.getElementById("svg").clientHeight * 0.9,
+  tau = 2 * Math.PI,
+  inner = height / 3.2,
+  outer = height / 1.9;
+
+  // Create the SVG container, and apply a transform such that the origin is the center of the canvas
+  svg = d3.select("#svg").append("svg")
+      .attr("width", width / 2)
+      .attr("height", height * 1.1)
+    .append("g")
+      .attr("transform", "translate(" + width / 4 + "," + height / 1.8 + ")");
+
+  // Create and svg grouping to hold our visualization arcs
+  backgroundArcGroup = svg.append("g");
+  arcGroup = svg.append("g");
+  textArcGroup = svg.append("g");
+
+}
+generateSVG();
+
 // Empty arrays
 var visibleFields = [];
 var visibleArcs = [];
 var backgroundArcs = [];
 var textArcs = [];
-
-// Create the SVG container, and apply a transform such that the origin is the center of the canvas
-var svg = d3.select("#svg").append("svg")
-    .attr("width", width / 2)
-    .attr("height", height * 1.1)
-  .append("g")
-    .attr("transform", "translate(" + width / 4 + "," + height / 1.8 + ")");
-
-// Create and svg grouping to hold our visualization arcs
-var backgroundArcGroup = svg.append("g");
-var arcGroup = svg.append("g");
-var textArcGroup = svg.append("g");
 
 // Add all fields that should be currently represented with arcs to the visibleFields array
 var populateVisibleFields = function() {
@@ -303,8 +310,6 @@ function ready(error, risk) {
     // Response functions
     colorMap();
     rank(risk);
-
-    console.log(rankings);
 
     if(selectedCountry !== "") {
       displayArcs();
@@ -517,6 +522,13 @@ function ready(error, risk) {
     }
   }
 
+  // Make site responsive to window size changes
+  window.addEventListener("resize", function(event) {
+
+    generateSVG();
+    if (selectedCountry !== "") { displayArcs(); }
+
+  }, true);
 
 }
 
