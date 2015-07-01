@@ -32,6 +32,8 @@
   font-weight: 100;
   font-size: 1.75em;
 
+  width: 83%;
+
 }
 
 .heavier {
@@ -76,6 +78,16 @@
 
 }
 
+#countryTitle {
+  font-size: 2.8em;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+#metricScores {
+  height: 30%;
+}
+
 </style>
 
 <body>
@@ -87,17 +99,17 @@
 
 <div id="pageContainer" style="font-family: Helvetica, Arial, sans-serif;">
   <div id="header">
-    <img id="logo" src="logo.png"/>
+    <a href="http://americanredcross.github.io"><img id="logo" src="logo.png"/></a>
     <h1 id="siteTitle">
       <span class="heavier">Country Risk Level Scores</span> from 2015 INFORM World Index
     </h1>
   </div>
   <div id="svgContainer" style="position: absolute; top: 6em; bottom: 0; left: 0; right: 50%;">
-    <div style="position: absolute; left: 1em; height: 3em; width: 150%;">
-      <h1 id="countryTitle" style="font-size: 3em; margin: 0;"></h1>
+    <div style="position: absolute; left: 0; right: 1em; height: 3em; width: 100%; text-align: center;">
+      <h1 id="countryTitle"></h1>
     </div>
     <div id="svg" style="position: absolute; top: 3em; bottom: 5%; left: 0%; right: 0%; color: pink;">
-      <div style="position: absolute; left: 30%; right: 30%; top: 28%; bottom: 0%; text-align: center;">
+      <div id="metricScores" style="position: absolute; left: 30%; right: 30%; top: 28%; bottom: 0%; text-align: center;">
         <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.5em; color: #d7d7d8;"></p>
         <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.6em; color: #9f9fa3;"></p>
         <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.7em; color: #6d6e70;"></p>
@@ -244,16 +256,34 @@ function ready(error, risk) {
 
   function onEachFeature(feature, layer) {
         layer.on({
-            //mouseover: highlightFeature,
-            //mouseout: resetHighlight,
+            mouseover: highlightFeature,
+            mouseout: resetHighlight,
             click: clickedCountry
         });
+  }
+
+  function highlightFeature(e) {
+
+    e.target.setStyle({ fillOpacity: 0.3 });
+
+    //clickedLayer.setStyle({ weight: 6 });
+
+  }
+
+  function resetHighlight(e) {
+
+    e.target.setStyle({ fillOpacity: 0.7 });
+
+    //clickedLayer.setStyle({ weight: 6 });
+
   }
 
   var clickedLayer = undefined;
 
   // Zooming map to country
   function clickedCountry(e) {
+
+    clickedLayer = e.target;
 
     d3.select("#instructions").remove();
     selectCountry(risk[findIndex(risk, "ISO3", e.target.feature.properties.ISO3)]["COUNTRY"]);
@@ -315,7 +345,6 @@ function ready(error, risk) {
     colorMap();
 
   }
-  //test//selectCountry("Somalia");
 
   // Respond to a metric selection
   var selectMetric = function(metricName) {
@@ -450,6 +479,7 @@ function ready(error, risk) {
           .style("fill", "#9f9fa3")
           .attr("d", backgroundArcs[i])
           .attr("id", visibleFields[i] + " arc")
+          .style("cursor", "pointer")
           .style("pointer-events", "pointer")
           .on("mouseover", function(d) {
               d3.select(this).style("stroke", "yellow");

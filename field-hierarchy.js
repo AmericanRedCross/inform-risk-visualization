@@ -58,11 +58,11 @@ fieldHierarchy = [
   },
   {
     field: "Institutional",
-    subset: ["DRR", "Governance"]
+    subset: ["Disaster Risk Reduction", "Governance"]
   },
   {
-    field: "DRR",
-    subset: ["DRR"]
+    field: "Disaster Risk Reduction",
+    subset: ["Disaster Risk Reduction"]
   },
   {
     field: "Governance",

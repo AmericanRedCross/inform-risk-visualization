@@ -75,8 +75,6 @@ function rank(riskArray) {
 
   }
 
-  console.log(rankings.GLOBE[0]);
-
 }
 
 function getISO3(riskArray, nameOfCountry) {
