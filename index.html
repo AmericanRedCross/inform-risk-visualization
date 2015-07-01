@@ -3,6 +3,41 @@
 
 <style>
 
+#header {
+
+  position: absolute;
+  top: 0.5em;
+  left: 0;
+  right: 0;
+  height: 4.5em;
+
+  border-top-style: solid;
+  border-top-color: #D7D7D8;
+  border-top-width: 0.2em;
+
+  border-bottom-style: solid;
+  border-bottom-color: #D7D7D8;
+  border-bottom-width: 0.2em;
+
+  color: #6D6E70;
+
+  padding-left: 1em;
+
+}
+
+#siteTitle {
+
+  position: relative;
+
+  font-weight: 100;
+  font-size: 2em;
+
+}
+
+.heavier {
+  font-weight: 500;
+}
+
 .parentToMetric:hover {
   text-decoration: underline;
   cursor: pointer;
@@ -11,6 +46,22 @@
 .link:hover {
   text-decoration: underline;
   color: #333;
+}
+
+.legendBlock {
+   float: left;
+   height: 100%;
+   width: 9.09%;
+   text-align: center;
+   font-weight: 700;
+}
+
+img {
+  max-height: 100%;
+  float: right;
+
+  padding-right: 1em;
+
 }
 
 </style>
@@ -23,24 +74,38 @@
 <link href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet' />
 
 <div id="pageContainer" style="font-family: Helvetica, Arial, sans-serif;">
-  <div style="position: absolute; left: 2em;">
-    <h1 style="font-size: 3.2em; margin-top: 5%;"></h1>
+  <div id="header">
+    <img src="logo.png"/>
+    <h1 id="siteTitle">
+      <span class="heavier">Country Risk Level Scores</span> from 2015 INFORM World Index
+    </h1>
   </div>
-  <div id="svgContainer" style="position: absolute; bottom: 5%; top: 25%; left: 0; right: 50%;">
-    <div style="position: absolute; left: 30%; right: 30%; top: 30%; bottom: 0%; text-align: center;">
-      <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.6em; color: #d7d7d8;"></p>
-      <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.75em; color: #9f9fa3;"></p>
-      <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.9em; color: #6d6e70;"></p>
-      <p id="thisMetric" style="font-size: 1.4em; color: #000; padding-top: 0; margin-bottom: 0em;"></p>
-      <p id="countryRankingLabel"  style="font-size: 0.8em; color: #6D6E70; font-style: italic; margin-top: 0.5em; width: 70%; margin-left: 15%;"></p>
+  <div id="svgContainer" style="position: absolute; top: 6em; bottom: 0; left: 0; right: 50%;">
+    <div style="position: absolute; left: 1em; height: 3em; width: 150%;">
+      <h1 id="countryTitle" style="font-size: 3em; margin: 0;"></h1>
     </div>
-    <div id="footer" style="position: absolute; bottom: 0; top: 95%; left: 0; right: 0;">
-      <p class="link" style="font-size: 1em; margin-top: 2em; width: 100%; text-align: center;">
+    <div id="svg" style="position: absolute; top: 3em; bottom: 5%; left: 0%; right: 0%; color: pink;">
+      <div style="position: absolute; left: 30%; right: 30%; top: 28%; bottom: 0%; text-align: center;">
+        <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.6em; color: #d7d7d8;"></p>
+        <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.75em; color: #9f9fa3;"></p>
+        <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.9em; color: #6d6e70;"></p>
+        <p id="thisMetric" style="font-size: 1.4em; color: #000; padding-top: 0; margin-bottom: 0em;"></p>
+        <p id="countryRankingLabel"  style="font-size: 0.8em; color: #6D6E70; font-style: italic; margin-top: 0.5em; width: 70%; margin-left: 15%;"></p>
+      </div>
+    </div>
+    <div id="footer" style="position: absolute; bottom: 1em; height: 1em; left: 0; right: 0;">
+      <p class="link" style="font-size: 1em; width: 100%; text-align: center; margin: 0;">
         <a href="http://www.inform-index.org/" target="_blank" style="text-decoration: none; color: #6d6e70;">Source: Index for Risk Management 2015 Scores</a>
       </p>
     </div>
   </div>
-  <div id="map" style="position: absolute; bottom: 0%; top: 25%; left: 50%; right: 0%;"></div>
+  <div id="mapContainer" style="position: absolute; bottom: 1em; top: 6em; left: 50%; right: 1em;">
+    <div id="legend" style="position: absolute; left: 7%; right: 7%; top: 0.5em; height: 2em; border-style: solid; border-width: 0.1em; border-color: #6d6e70;">
+      <div id="legendLowRisk" style="position: absolute; left: 0.3em; right: 50%; top: 0.5em; bottom: 0; text-align: left; color: #6d6e70;">0.0 - Low Risk</div>
+      <div id="legendHighRisk" style="position: absolute; left: 50%; right: 0.3em; top: 0.5em; bottom: 0; text-align: right; color: #fff;">High Risk - 10.0</div>
+    </div>
+    <div id="map" style="position: absolute; top: 5em; bottom: 0; width: 100%; border-style: solid; border-width: 0.1em; border-color: #6d6e70;"></div>
+  </div>
 </div>
 
 <!-- Array with hierarchy of fields -->
@@ -62,16 +127,16 @@ var selectedCountry = "";
 var selectedMetricIndex = findIndex(fieldHierarchy, "field", selectedMetric);
 
 // Visual variables
-var width = document.getElementById("svgContainer").clientWidth * 2,
-    height = document.getElementById("svgContainer").clientHeight * 0.9,
+var width = document.getElementById("svg").clientWidth * 2,
+    height = document.getElementById("svg").clientHeight * 0.9,
     tau = 2 * Math.PI,
-    inner = height / 3,
+    inner = height / 3.2,
     outer = height / 1.9,
     colors = ["#FFFFFF","#FFEFDC","#ED1B2E", "#730204"],
     oppositeColors = ["#eee", "#fff", "#fff"];
 
 var color = d3.scale.linear()
-		.domain([-2.0, 3.0, 8.0, 12.0])
+		.domain([-2.0, 2, 8.0, 12.0])
 		.range([colors[0], colors[1], colors[2], colors[3]])
 		.interpolate(d3.interpolateHsl);
 
@@ -80,6 +145,17 @@ var oppositeColor = d3.scale.linear()
 		.range([oppositeColors[0], oppositeColors[1], oppositeColors[2]])
 		.interpolate(d3.interpolateLab);
 
+// Generate legend
+var legend = d3.select("#legend");
+
+for (var i = 0; i <= 10; i++) {
+  legend
+    .append("div")
+      .attr("class", "legendBlock")
+      .style("background-color", color(i));
+
+}
+
 // Empty arrays
 var visibleFields = [];
 var visibleArcs = [];
@@ -87,7 +163,7 @@ var backgroundArcs = [];
 var textArcs = [];
 
 // Create the SVG container, and apply a transform such that the origin is the center of the canvas
-var svg = d3.select("#svgContainer").append("svg")
+var svg = d3.select("#svg").append("svg")
     .attr("width", width / 2)
     .attr("height", height * 1.1)
   .append("g")
@@ -255,7 +331,7 @@ function ready(error, risk) {
   // Populate country text fields
   function displayCountryText() {
 
-    var title = d3.select("h1");
+    var title = d3.select("#countryTitle");
     title.text(selectedCountry);
 
   }
