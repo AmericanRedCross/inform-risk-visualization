@@ -88,6 +88,34 @@
   height: 30%;
 }
 
+#back-button-container {
+  height: 2em;
+  width: 6em;
+}
+
+#back-button-container {
+  width: 100%;
+}
+
+#back-button {
+  display: block;
+  margin: auto;
+  opacity: 0;
+}
+
+#back-button.inactive {
+  opacity: 0.1;
+}
+
+#back-button.active {
+  opacity: 0.4;
+}
+
+#back-button.active:hover {
+  cursor: pointer;
+  opacity: 1;
+}
+
 </style>
 
 <body>
@@ -109,11 +137,12 @@
       <h1 id="countryTitle"></h1>
     </div>
     <div id="svg" style="position: absolute; top: 3em; bottom: 5%; left: 0%; right: 0%; color: pink;">
-      <div id="metricScores" style="position: absolute; left: 30%; right: 30%; top: 28%; bottom: 0%; text-align: center;">
+      <div id="metricScores" style="position: absolute; left: 30%; right: 30%; top: 26%; bottom: 0%; text-align: center;">
         <p id="thisMetricParentParentParent" class="parentToMetric" style="font-size: 0.5em; color: #d7d7d8;"></p>
         <p id="thisMetricParentParent" class="parentToMetric" style="font-size: 0.6em; color: #9f9fa3;"></p>
         <p id="thisMetricParent" class="parentToMetric" style="font-size: 0.7em; color: #6d6e70;"></p>
-        <p id="thisMetric" style="font-size: 1.2em; color: #000; padding-top: 0; margin-bottom: 0em;"></p>
+        <div id="back-button-container"><img src="back-arrow.png" id="back-button" style="height: 100%;" /></div>
+        <p id="thisMetric" style="font-size: 1.2em; color: #000; padding-top: 0; margin-bottom: 0em; margin-top: 0em;"></p>
         <p id="countryRankingLabel"  style="font-size: 0.75em; color: #6D6E70; font-style: italic; margin-top: 0.5em; width: 70%; margin-left: 15%;"></p>
       </div>
       <h2 id="instructions">select a country on the map</h2>
@@ -274,8 +303,6 @@ function ready(error, risk) {
 
     e.target.setStyle({ fillOpacity: 0.7 });
 
-    //clickedLayer.setStyle({ weight: 6 });
-
   }
 
   var clickedLayer = undefined;
@@ -401,17 +428,30 @@ function ready(error, risk) {
                 + findRank(selectedCountry).REGION + " out of " + rankings[findRank(selectedCountry).amCrossRegion].length + " in the " + findRank(selectedCountry).amCrossRegion + " region.");
 
       if (parentMetric(selectedMetric)) {
+
+        d3.select("#back-button").attr("class", "active").on("click", function() {
+
+          if (parentMetric(selectedMetric)) {
+            selectedMetric = parentMetric(selectedMetric);
+            selectMetric(selectedMetric);
+          }
+
+        });
+
         d3.select("#thisMetricParent").text(
           parentMetric(selectedMetric).toUpperCase() + ": "
         ).append("span").style("font-weight", "bold").text(risk[selectedCountryIndex][parentMetric(selectedMetric)]);
 
         d3.select("#thisMetricParent").on("click", function() {
-
           selectedMetric = parentMetric(selectedMetric);
           selectMetric(selectedMetric);
         });
+
       } else {
+
         d3.select("#thisMetricParent").text("");
+        d3.select("#back-button").attr("class", "inactive");
+
       }
 
       if (parentMetric(parentMetric(selectedMetric))) {

@@ -1,11 +1,11 @@
-regions = ["GLOBE", "AFRICA", "AMEE", "LAC", "US"];
+regions = ["GLOBE", "AFRICA", "AMEE", "LAC", "AMERICAS"];
 
 rankings = {
   GLOBE: [],
   AFRICA: [],
   AMEE: [],
   LAC: [],
-  US: []
+  AMERICAS: []
 };
 
 function ordinalSuffixOf(i) {
@@ -60,7 +60,7 @@ function rank(riskArray) {
     AFRICA: [],
     AMEE: [],
     LAC: [],
-    US: []
+    AMERICAS: []
   };
 
   populateRankings(riskArray);
